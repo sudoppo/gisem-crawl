@@ -4,6 +4,7 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.alert import Alert
 from datetime import datetime, timedelta
 import time
 import requests
@@ -12,13 +13,17 @@ import json
 profile_path = "/home/sudoppo/snap/firefox/common/.mozilla/firefox/ge47pdqr.sudoppo"
 # Configure Firefox options for headless mode
 firefox_options = Options()
-#firefox_options.add_argument("--headless")  # Run in headless mode
+firefox_options.add_argument("--headless")  # Run in headless mode
 firefox_options.add_argument(f"--profile {profile_path}")
 
 # Set up the Firefox driver
 service = Service('/usr/local/bin/geckodriver')  # Path to GeckoDriver
 driver = webdriver.Firefox(service=service, options=firefox_options)
 
+# Flag to control the loop
+stop_program = False
+
+# Já foi testada e está a funcionar
 def crawl_page():
     try:
         driver.get("https://gisem.dei.estg.ipleiria.pt/horarios")
@@ -32,20 +37,33 @@ def crawl_page():
             print("Page loaded successfully")
             driver.get("https://gisem.dei.estg.ipleiria.pt/obterAulasMarcarPresenca")
 
-            find_lecture()
+            # find_lecture()
 
             if driver.title == "Horários":
                 print("Presença not opened yet")
             else:
                 marcar_title = driver.find_element(By.CSS_SELECTOR, "h1")
+
                 if marcar_title.text == "Marcar Presenças":
                     print("Presença opened")
-                    marcar_button = driver.find_element(By.CSS_SELECTOR, "button")
+                    marcar_button = driver.find_element(By.CSS_SELECTOR, "button.btn.btn-primary.col-xs-12")
                     button_id = marcar_button.get_attribute("id")
 
                     if button_id is not None:
                         marcar_button.click()
                         print(f"Presença marked for {marcar_button.text}")
+
+                        try:
+                            WebDriverWait(driver, 2).until(EC.alert_is_present())
+                            alert = Alert(driver)
+
+                            print(f"Alert text: {alert.text}")
+
+                            alert.accept()
+                            print("Alert accepted")
+                            driver.quit()
+                        except:
+                            print("No alert found")
                     else:
                         print("Presença button does not have an id")
 
